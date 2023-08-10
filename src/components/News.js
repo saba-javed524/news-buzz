@@ -1,87 +1,116 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect } from 'react'
 import NewsItem from './NewsItem'
 import Spinner from './Spinner';
+import PropTypes from 'prop-types'
+import InfiniteScroll from "react-infinite-scroll-component";
 
-export class News extends Component {
+const News = (props) => {
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalResults, setTotalResults] = useState(0);
 
-
-    constructor() {
-        super();
-        this.state = {
-            articles: [],
-            loading: false,
-            page: 1,
-            totalResults: 0,
-            pageLimit: 0
-        }
+    const capitalize = (word) => {
+        return word.charAt(0).toUpperCase() + word.slice(1)
     }
-    async componentDidMount() {
-        let url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=a938f2904fbc47809b1f97811e00a4e5&page=${this.state.page}&pageSize=${this.props.pageSize}`;
-        this.setState({
-            loading: true
-        })
+
+    const updateNews = async () => {
+        props.setProgress(10);
+        setLoading(true);
+        props.setProgress(30);
+        const url = `https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=${props.apiKey}&page=${page}&pageSize=${props.pageSize}`;
+        document.title = `${capitalize(props.category)} - The News Buzz`
         let data = await fetch(url);
         let parsedData = await data.json();
-        let totalResults = await parsedData.totalResults;
-        this.setState({
-            loading: false,
-            page: this.state.page,
-            articles: parsedData.articles,
-            pageLimit: Math.ceil(totalResults / this.props.pageSize)
-        })
-    }
-    handlePreviousClick = async () => {
-        let url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=a938f2904fbc47809b1f97811e00a4e5&page=${this.state.page - 1}&pageSize=${this.props.pageSize}`;
-        this.setState({
-            loading: true
-        })
-        let data = await fetch(url);
-        let parsedData = await data.json();
-        this.setState({
-            loading: false,
-            page: this.state.page - 1,
-            articles: parsedData.articles,
-            pageLimit: this.state.pageLimit
-        })
-    }
-    handleNextClick = async () => {
-        let url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=a938f2904fbc47809b1f97811e00a4e5&page=${this.state.page + 1}&pageSize=${this.props.pageSize}`;
-        this.setState({
-            loading: true
-        })
-        let data = await fetch(url);
-        let parsedData = await data.json();
-
-        this.setState({
-            loading: false,
-            page: this.state.page + 1,
-            articles: parsedData.articles,
-            pageLimit: this.state.pageLimit
-        })
+        props.setProgress(50);
+        // let totalResults = await parsedData.totalResults;
+        props.setProgress(70);
+        setLoading(false);
+        setPage(2);
+        setArticles(parsedData.articles);
+        setTotalResults(parsedData.totalResults);
+        // setPageLimit(Math.ceil(totalResults / props.pageSize)) //total number of pages
+        props.setProgress(100);
     }
 
-    render() {
-        return (
-            <div className="container">
-                <h3 className='text-center mt-3'>Buzzworthy News: Stay Informed with News Buzz!</h3>
-                {this.state.loading === true ? <Spinner /> :
+    useEffect(() => {
+        updateNews();
+        /* eslint-disable */
+    }, [])
+
+    const fetchMoreData = async () => {
+        const url = `https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=${props.apiKey}&page=${page}&pageSize=${props.pageSize}`;
+        setPage(page + 1)
+        let data = await fetch(url);
+        let parsedData = await data.json();
+        // let totalResults = await parsedData.totalResults;
+        setArticles(articles.concat(parsedData.articles));
+        setTotalResults(parsedData.totalResults);
+    }
+
+    // const handlePreviousClick = async () => {
+    //     setPage(page - 1);
+    //     await updateNews()
+    // }
+
+    // const handleNextClick = async () => {
+    //     setPage(page + 1);
+    //     await updateNews()
+    // }
+
+    return (
+        <>
+            <h3 className='text-center' style={{ marginTop: '6%' }}>Buzzworthy News: Top {capitalize(props.category)} Headlines!</h3>
+            {loading && <Spinner />}
+            <InfiniteScroll
+                dataLength={articles.length}
+                next={fetchMoreData}
+                hasMore={articles.length !== totalResults}
+                loader={<Spinner />}>
+                <div className="container">
                     <div className="row">
-                        {this.state.articles.map((element) => {
+                        {articles.map((element) => {
                             return <div className="col-md-4" key={element.url}>
-                                <NewsItem title={element.title === null ? "" : (element.title.length > 45 ? element.title.slice(0, 45) + "..." : element.title.slice(0, 45))} description={element.description === null ? "" : (element.description.length > 88 ? element.description.slice(0, 88) + "..." : element.description.slice(0, 88))} imageUrl={element.urlToImage === null ? "https://media.istockphoto.com/id/1128119311/photo/cubes-with-the-word-news-on-a-newspaper.jpg?b=1&s=612x612&w=0&k=20&c=AUpepbnMhzMFfCpJTKqoC4fKn48prR39X5AqYNdaHk0=" : element.urlToImage} newsUrl={element.url} />
+                                <NewsItem
+                                    title={element.title === null ? "" : (element.title.length > 45 ? element.title.slice(0, 45) + "..." : element.title.slice(0, 45))}
+                                    description={element.description === null ? "" : (element.description.length > 88 ? element.description.slice(0, 88) + "..." : element.description.slice(0, 88))}
+                                    imageUrl={element.urlToImage === null ? "https://media.istockphoto.com/id/1128119311/photo/cubes-with-the-word-news-on-a-newspaper.jpg?b=1&s=612x612&w=0&k=20&c=AUpepbnMhzMFfCpJTKqoC4fKn48prR39X5AqYNdaHk0=" : element.urlToImage}
+                                    newsUrl={element.url}
+                                    author={!element.author ? 'Unknown' : element.author}
+                                    date={element.publishedAt}
+                                    source={element.source.name}
+                                    pillColor={props.pillColor} />
                             </div>
                         })}
-                    </div>}
-                <div className="container d-flex justify-content-between">
-                    <button disabled={this.state.page <= 1 ? true : false} onClick={this.handlePreviousClick} type="button" className="btn btn-dark my-2">&larr; Previous</button>
-                    <h6 className='mt-3 text-secondary-emphasis'>Page {this.state.page} of total {this.state.pageLimit} pages. Showing {this.state.loading ? '0' : this.props.pageSize} results.</h6>
-                    <button disabled={this.state.pageLimit > this.state.page ? false : true} onClick={this.handleNextClick} type="button" className="btn btn-dark my-2">Next &rarr;</button>
+                    </div>
+                    <h6 className='text-center mt-3 text-secondary-emphasis'>Showing {articles.length} of total {totalResults} results.</h6>
+
                 </div>
 
-            </div>
-        )
-    }
+                {/* <div className="container d-flex justify-content-between">
+                        <button disabled={  page <= 1 ? true : false} onClick={  handlePreviousClick} type="button" className="btn btn-dark my-2">&larr; Previous</button>
+                        <h6 className='mt-3 text-secondary-emphasis'>Page {  page} of total {  pageLimit} pages. Showing {  loading ? '0' :   props.pageSize} of total {  totalResults} results.</h6>
+                        <button disabled={  pageLimit >   page ? false : true} onClick={  handleNextClick} type="button" className="btn btn-dark my-2">Next &rarr;</button>
+                    </div> */}
+            </InfiniteScroll>
+        </>
+    )
 }
 
+News.defaultProps = {
+    pageSize: 9,
+    country: "us",
+    category: "general",
+    pillColor: "primary",
+
+}
+
+News.propTypes = {
+    pageSize: PropTypes.number,
+    country: PropTypes.string,
+    category: PropTypes.string,
+    apiKey: PropTypes.string,
+    pillColor: PropTypes.string
+}
 
 export default News
