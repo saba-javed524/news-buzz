@@ -15,6 +15,7 @@ const News = (props) => {
     }
 
     const updateNews = async () => {
+        console.log('UPDATE NEWS IS CALLED')
         props.setProgress(10);
         setLoading(true);
         props.setProgress(30);
@@ -39,6 +40,7 @@ const News = (props) => {
     }, [])
 
     const fetchMoreData = async () => {
+        console.log('FETCH MORE DATA IS CALLED')
         const url = `https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=${props.apiKey}&page=${page}&pageSize=${props.pageSize}`;
         setPage(page + 1)
         let data = await fetch(url);
